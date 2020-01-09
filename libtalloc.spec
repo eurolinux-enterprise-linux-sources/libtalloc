@@ -5,8 +5,8 @@
 %{!?python_version: %global python_version %(%{__python} -c "from distutils.sysconfig import get_python_version; print(get_python_version())")}
 
 Name: libtalloc
-Version: 2.0.7
-Release: 2%{?dist}
+Version: 2.1.5
+Release: 1%{?dist}
 Group: System Environment/Daemons
 Summary: The talloc library
 License: LGPLv3+
@@ -21,7 +21,6 @@ BuildRequires: python-devel
 BuildRequires: doxygen
 
 # Patches
-Patch1001: 0001-build-added-autoconf-disable-silent-rules-option.patch
 
 %description
 A library that implements a hierarchical allocator with destructors.
@@ -54,8 +53,6 @@ Development libraries for pytalloc
 
 %prep
 %setup -q -n talloc-%{version}
-
-%patch1001 -p1
 
 %build
 %configure --disable-rpath \
@@ -95,6 +92,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_libdir}/libtalloc.so
 %{_libdir}/pkgconfig/talloc.pc
 %{_mandir}/man3/talloc*.3.gz
+%{_mandir}/man3/libtalloc*.3.gz
 
 %files -n pytalloc
 %defattr(-,root,root,-)
@@ -117,6 +115,11 @@ rm -rf $RPM_BUILD_ROOT
 %postun -n pytalloc -p /sbin/ldconfig
 
 %changelog
+* Fri Apr  1 2016 Jakub Hrozek <jhrozek@redhat.com> - 2.1.5-1
+- Rebase to 2.1.5
+- Remove upstreamed patch to enable verbose build
+- Related: rhbz#1322688
+
 * Mon Oct  8 2012 Jakub Hrozek <jhrozek@redhat.com> - 2.0.7-2
 - Obsolete older pytalloc{,-devel} releases to clear the upgrade path
   towards non-multilib pytalloc
