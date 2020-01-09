@@ -1,6 +1,12 @@
+%if ! (0%{?fedora} > 12 || 0%{?rhel} > 5)
+%{!?python_sitelib: %global python_sitelib %(%{__python} -c "from distutils.sysconfig import get_python_lib; print(get_python_lib())")}
+%{!?python_sitearch: %global python_sitearch %(%{__python} -c "from distutils.sysconfig import get_python_lib; print(get_python_lib(1))")}
+%endif
+%{!?python_version: %global python_version %(%{__python} -c "from distutils.sysconfig import get_python_version; print(get_python_version())")}
+
 Name: libtalloc
-Version: 2.0.1
-Release: 1.1%{?dist}
+Version: 2.0.7
+Release: 2%{?dist}
 Group: System Environment/Daemons
 Summary: The talloc library
 License: LGPLv3+
@@ -11,6 +17,11 @@ BuildRoot: %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 BuildRequires: autoconf
 BuildRequires: libxslt
 BuildRequires: docbook-style-xsl
+BuildRequires: python-devel
+BuildRequires: doxygen
+
+# Patches
+Patch1001: 0001-build-added-autoconf-disable-silent-rules-option.patch
 
 %description
 A library that implements a hierarchical allocator with destructors.
@@ -23,29 +34,53 @@ Requires: libtalloc = %{version}-%{release}
 %description devel
 Header files needed to develop programs that link against the Talloc library.
 
+%package -n pytalloc
+Group: Development/Libraries
+Summary: Developer tools for the Talloc library
+Requires: libtalloc = %{version}-%{release}
+Obsoletes: pytalloc < %{version}-%{release}
+
+%description -n pytalloc
+Pytalloc libraries for creating python bindings using talloc
+
+%package -n pytalloc-devel
+Group: Development/Libraries
+Summary: Developer tools for the Talloc library
+Requires: pytalloc = %{version}-%{release}
+Obsoletes: pytalloc-devel < %{version}-%{release}
+
+%description -n pytalloc-devel
+Development libraries for pytalloc
+
 %prep
 %setup -q -n talloc-%{version}
 
+%patch1001 -p1
+
 %build
-./autogen.sh
-#%configure --enable-talloc-compat1
-%configure
-make %{?_smp_mflags}
+%configure --disable-rpath \
+           --disable-rpath-install \
+           --bundled-libraries=NONE \
+           --builtin-libraries=replace \
+           --disable-silent-rules
+
+make %{?_smp_mflags} V=1
+doxygen doxy.config
 
 %install
 rm -rf $RPM_BUILD_ROOT
 
 make install DESTDIR=$RPM_BUILD_ROOT
 
-ln -s libtalloc.so.%{version} $RPM_BUILD_ROOT%{_libdir}/libtalloc.so.2
-ln -s libtalloc.so.%{version} $RPM_BUILD_ROOT%{_libdir}/libtalloc.so
-
-#Compatibility library
-#ln -s libtalloc-compat1-2.0.0.so $RPM_BUILD_ROOT%{_libdir}/libtalloc.so.1
+# Shared libraries need to be marked executable for
+# rpmbuild to strip them and include them in debuginfo
+find $RPM_BUILD_ROOT -name "*.so*" -exec chmod -c +x {} \;
 
 rm -f $RPM_BUILD_ROOT%{_libdir}/libtalloc.a
 rm -f $RPM_BUILD_ROOT/usr/share/swig/*/talloc.i
 
+# Install API docs
+cp -a doc/man/* $RPM_BUILD_ROOT/%{_mandir}
 
 %clean
 rm -rf $RPM_BUILD_ROOT
@@ -53,14 +88,24 @@ rm -rf $RPM_BUILD_ROOT
 %files
 %defattr(-,root,root,-)
 %{_libdir}/libtalloc.so.*
-#%{_libdir}/libtalloc-compat1-2.0.0.so
 
 %files devel
 %defattr(-,root,root,-)
 %{_includedir}/talloc.h
 %{_libdir}/libtalloc.so
 %{_libdir}/pkgconfig/talloc.pc
-%{_mandir}/man3/talloc.3.gz
+%{_mandir}/man3/talloc*.3.gz
+
+%files -n pytalloc
+%defattr(-,root,root,-)
+%{_libdir}/libpytalloc-util.so.*
+%{python_sitearch}/talloc.so
+
+%files -n pytalloc-devel
+%defattr(-,root,root,-)
+%{_includedir}/pytalloc.h
+%{_libdir}/pkgconfig/pytalloc-util.pc
+%{_libdir}/libpytalloc-util.so
 
 %post
 /sbin/ldconfig
@@ -68,7 +113,19 @@ rm -rf $RPM_BUILD_ROOT
 %postun
 /sbin/ldconfig
 
+%post -n pytalloc -p /sbin/ldconfig
+%postun -n pytalloc -p /sbin/ldconfig
+
 %changelog
+* Mon Oct  8 2012 Jakub Hrozek <jhrozek@redhat.com> - 2.0.7-2
+- Obsolete older pytalloc{,-devel} releases to clear the upgrade path
+  towards non-multilib pytalloc
+- Resolves: rhbz#862062
+
+* Thu Aug 2  2012 Jakub Hrozek <jhrozek@redhat.com> - 2.0.7-1
+- New upstream version, resolves rhbz #766335
+- Build python bindings to satisfy Samba4 BuildRequires
+
 * Tue Dec 15 2009 Simo Sorce <ssorce@redhat.com> - 2.0.1-1.1
 - New version from upstream
 - Also stop building the compat lib, it is not necessary anymore
