@@ -24,7 +24,7 @@ def check(self, *k, **kw):
     if not 'env' in kw:
         kw['env'] = self.env.copy()
 
-    # match the configuration test with specific options, for example:
+    # match the configuration test with speficic options, for example:
     # --with-libiconv -> Options.options.iconv_open -> "Checking for library iconv"
     additional_dirs = []
     if 'msg' in kw:
@@ -50,7 +50,7 @@ def check(self, *k, **kw):
     ret = None
     try:
         ret = self.run_c_code(*k, **kw)
-    except Configure.ConfigurationError as e:
+    except Configure.ConfigurationError, e:
         self.check_message_2(kw['errmsg'], 'YELLOW')
         if 'mandatory' in kw and kw['mandatory']:
             if Logs.verbose > 1:
@@ -286,9 +286,7 @@ def CHECK_LIBRARY_SUPPORT(conf, rpath=False, version_script=False, msg=None):
     os.makedirs(subdir)
 
     Utils.writef(os.path.join(subdir, 'lib1.c'), 'int lib_func(void) { return 42; }\n')
-    Utils.writef(os.path.join(dir, 'main.c'),
-                 'int lib_func(void);\n'
-                 'int main(void) {return !(lib_func() == 42);}\n')
+    Utils.writef(os.path.join(dir, 'main.c'), 'int main(void) {return !(lib_func() == 42);}\n')
 
     bld = Build.BuildContext()
     bld.log = conf.log
@@ -438,7 +436,6 @@ def CHECK_UNAME(conf):
     ret = True
     for v in "sysname machine release version".split():
         if not conf.CHECK_CODE('''
-                               int printf(const char *format, ...);
                                struct utsname n;
                                if (uname(&n) == -1) return -1;
                                printf("%%s", n.%s);
