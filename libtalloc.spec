@@ -5,7 +5,7 @@
 %{!?python_version: %global python_version %(%{__python} -c "from distutils.sysconfig import get_python_version; print(get_python_version())")}
 
 Name: libtalloc
-Version: 2.1.10
+Version: 2.1.13
 Release: 1%{?dist}
 Group: System Environment/Daemons
 Summary: The talloc library
@@ -115,6 +115,10 @@ rm -rf $RPM_BUILD_ROOT
 %postun -n pytalloc -p /sbin/ldconfig
 
 %changelog
+* Tue Apr 10 2018 Jakub Hrozek <jhrozek@redhat.com> - 2.1.13-1
+- Rebase to libtalloc 2.1.13
+- Resolves: rhbz#1558492 - Rebase libtalloc to enable samba rebase
+
 * Sun Oct 15 2017 Jakub Hrozek <jhrozek@redhat.com> - 2.1.10-1
 - Rebase to libtalloc 2.1.10
 - Resolves: rhbz#1470053 - Rebase libtalloc to enable samba rebase to
